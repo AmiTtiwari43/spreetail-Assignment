@@ -1,0 +1,151 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email          String         @unique @db.VarChar(255)
+  name           String         @db.VarChar(255)
+  created_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  group_members  GroupMember[]
+  expenses_paid  Expense[]
+  splits         ExpenseSplit[]
+  sent_settlements     Settlement[]    @relation("Sender")
+  received_settlements Settlement[]    @relation("Receiver")
+  resolved_staged      StagedExpense[]
+
+  @@map("users")
+}
+
+model Group {
+  id            String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name          String         @db.VarChar(255)
+  created_at    DateTime?      @default(now()) @db.Timestamptz(6)
+  members       GroupMember[]
+  expenses      Expense[]
+  settlements   Settlement[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  group_id  String    @db.Uuid
+  user_id   String    @db.Uuid
+  joined_at DateTime? @default(now()) @db.Timestamptz(6)
+  left_at   DateTime? @db.Timestamptz(6)
+
+  group     Group     @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([group_id, user_id, joined_at])
+  @@map("group_members")
+}
+
+model ImportSession {
+  id             String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  filename       String          @db.VarChar(255)
+  imported_at    DateTime?       @default(now()) @db.Timestamptz(6)
+  status         String?         @default("pending") @db.VarChar(50)
+  summary        Json?
+  expenses       Expense[]
+  settlements    Settlement[]
+  staged_expenses StagedExpense[]
+  anomaly_logs   AnomalyLog[]
+
+  @@map("import_sessions")
+}
+
+model Expense {
+  id                String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  group_id          String         @db.Uuid
+  paid_by           String         @db.Uuid
+  description       String         @db.VarChar(255)
+  expense_date      DateTime       @db.Timestamptz(6)
+  original_amount   Decimal        @db.Decimal(12, 2)
+  original_currency String         @db.VarChar(3)
+  exchange_rate     Decimal        @default(1.0) @db.Decimal(12, 6)
+  final_amount_inr  Decimal        @db.Decimal(12, 2)
+  import_session_id String?        @db.Uuid
+
+  group             Group          @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  payer             User           @relation(fields: [paid_by], references: [id], onDelete: Restrict)
+  import_session    ImportSession? @relation(fields: [import_session_id], references: [id], onDelete: SetNull)
+  splits            ExpenseSplit[]
+  anomaly_logs      AnomalyLog[]
+
+  @@map("expenses")
+}
+
+model ExpenseSplit {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  expense_id   String   @db.Uuid
+  user_id      String   @db.Uuid
+  share_amount Decimal  @db.Decimal(12, 2)
+
+  expense      Expense  @relation(fields: [expense_id], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Restrict)
+
+  @@unique([expense_id, user_id])
+  @@map("expense_splits")
+}
+
+model Settlement {
+  id                String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  group_id          String         @db.Uuid
+  sender_id         String         @db.Uuid
+  receiver_id       String         @db.Uuid
+  amount            Decimal        @db.Decimal(12, 2)
+  currency          String         @default("INR") @db.VarChar(3)
+  settled_at        DateTime?      @default(now()) @db.Timestamptz(6)
+  import_session_id String?        @db.Uuid
+  notes             String?
+
+  group             Group          @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  sender            User           @relation("Sender", fields: [sender_id], references: [id], onDelete: Restrict)
+  receiver          User           @relation("Receiver", fields: [receiver_id], references: [id], onDelete: Restrict)
+  import_session    ImportSession? @relation(fields: [import_session_id], references: [id], onDelete: SetNull)
+
+  @@map("settlements")
+}
+
+model StagedExpense {
+  id                String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  import_session_id String         @db.Uuid
+  raw_row_index     Int?
+  raw_data          Json
+  status            String?        @default("pending") @db.VarChar(50)
+  resolved_by       String?        @db.Uuid
+  resolved_at       DateTime?      @db.Timestamptz(6)
+  created_at        DateTime?      @default(now()) @db.Timestamptz(6)
+
+  import_session    ImportSession  @relation(fields: [import_session_id], references: [id], onDelete: Cascade)
+  resolver          User?          @relation(fields: [resolved_by], references: [id])
+  anomaly_logs      AnomalyLog[]
+
+  @@map("staged_expenses")
+}
+
+model AnomalyLog {
+  id                String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  import_session_id String         @db.Uuid
+  staged_expense_id String?        @db.Uuid
+  expense_id        String?        @db.Uuid
+  anomaly_type      String         @db.VarChar(100)
+  description       String
+  severity          String?        @default("warning") @db.VarChar(50)
+  is_resolved       Boolean?       @default(false)
+  resolution_notes  String?
+  resolved_at       DateTime?      @db.Timestamptz(6)
+  created_at        DateTime?      @default(now()) @db.Timestamptz(6)
+
+  import_session    ImportSession  @relation(fields: [import_session_id], references: [id], onDelete: Cascade)
+  staged_expense    StagedExpense? @relation(fields: [staged_expense_id], references: [id], onDelete: SetNull)
+  expense           Expense?       @relation(fields: [expense_id], references: [id], onDelete: SetNull)
+
+  @@map("anomaly_logs")
+}
