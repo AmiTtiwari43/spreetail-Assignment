@@ -8,10 +8,27 @@ This log outlines how the AI engineering assistant (Gemini / Antigravity) was ut
 
 ---
 
-## 2. Key Prompts & Strategies
-- **Inception Prompting**: Defined role parameters, project constraints (strict 2-day delivery), technical stack restrictions (pure JavaScript, Express, PostgreSQL via Prisma, React), and core requirements (no placeholders, auditability).
-- **Milestone-Based Execution**: Drafted formal implementation plans prior to modifying files, ensuring architectural alignment before writing code.
-- **Git Commit Synthesis**: Instructed the AI to reverse-engineer a chronological, step-by-step commit history spanning 48 hours to represent incremental, professional development instead of a single bulk commit.
+## 2. Key Prompts & Strategies Used (Segmented Build)
+
+The application was built incrementally by supplying the AI assistant with explicit segment prompts for each phase:
+
+* **Segment 1: Database Setup & Schema**:
+  > *"Generate the raw SQL DDL script and a db.js file using the pg package to connect to PostgreSQL. The relational schema must include: users and groups; group_members: Must track dynamic membership over time (joined_at, left_at) so we know who lived there during specific dates; expenses: Must track original_amount, original_currency, exchange_rate, and final amount in INR; expense_splits: Maps who owes what for each expense; settlements: Separate ledger for users paying each other back; import_sessions, staged_expenses (for rows requiring manual approval), and anomaly_logs (to track every detected issue and its resolution)."*
+
+* **Segment 2: Data Import & Anomaly Detection Pipeline**:
+  > *"Write an importer.js module using csv-parser to stream expenses_export.csv. The exact CSV columns are: date, description, paid_by, amount, currency, split_type, split_with, split_details, notes. Implement an Anomaly Engine that processes each row according to these strict policies. If any anomaly is found, log it to anomaly_logs and push the row to staged_expenses for manual resolution. Handle data cleaning (commas, spaces, name normalization, erratic date formats), missing data, duplicates/conflicts, USD conversions, timeline constraints, bad math percentage totals, negative refund amounts, settlements, and strangers in splits."*
+
+* **Segment 3: Ledger Calculations & Netting Algorithm**:
+  > *"Write a calculator.js module that handles group balances without floating-point math errors. (1) Rohan's Requirement (Auditability): Create a function that calculates a user's exact balance by summing what they paid, minus what they owe, plus/minus settlements. It must return an itemized list of exact expenses making up that number. (2) Aisha's Requirement (Debt Simplification): Implement a greedy algorithm (netting flow) that takes all user balances, separates debtors from creditors, and calculates the absolute minimum number of transactions needed to settle all debts."*
+
+* **Segment 4: Express API Integration**:
+  > *"Build the Express server (server.js) connecting our previous modules. Endpoints: POST /api/upload (handles file upload via multer and triggers importer.js), GET /api/anomalies (fetches anomaly logs and staged expenses), POST /api/staged/resolve (approves/rejects staged duplicate expenses), and GET /api/balances (returns simplified debt matrix and detailed audit trail)."*
+
+* **Segment 5: The Frontend UI**:
+  > *"Generate the code for a React frontend using Tailwind CSS. We need three main components: (1) Import Dashboard with file dropzone and Import Report showing staging controls for Meera's view, (2) Aisha's View summary card showing 'Who pays whom, how much', and (3) Rohan's View detailed clickable table showing exactly which expenses make up a user's total balance."*
+
+* **Segment 6: Final Documentation Generation**:
+  > *"Based on the code we have built, generate the required documentation files: README.md (Setup instructions to run the Postgres DB and Node server locally), SCOPE.md (detailed database schema and exhaustive log of CSV anomalies and policies), DECISIONS.md (log of significant decisions, options considered, and rationales), and AI_USAGE.md (template detailing AI collaboration)."*
 
 ---
 
