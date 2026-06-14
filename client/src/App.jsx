@@ -17,6 +17,7 @@ if (API_BASE && !API_BASE.endsWith('/api') && !API_BASE.endsWith('/api/')) {
 export default function App() {
   const [file, setFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState(null);
+  const [sessionSummary, setSessionSummary] = useState(null);
   const [anomalies, setAnomalies] = useState([]);
   const [balances, setBalances] = useState({ simplifiedDebts: [], auditTrails: {} });
   const [selectedUser, setSelectedUser] = useState('');
@@ -74,6 +75,7 @@ export default function App() {
 
     try {
       setUploadStatus({ type: 'info', message: 'Uploading and parsing CSV...' });
+      setSessionSummary(null);
       const res = await fetch(`${API_BASE}/upload`, {
         method: 'POST',
         body: formData,
@@ -84,6 +86,7 @@ export default function App() {
           type: 'success',
           message: `Import complete! Added ${data.sessionSummary.expensesInserted} expenses, ${data.sessionSummary.settlementsInserted} settlements, and staged ${data.sessionSummary.staged} rows.`
         });
+        setSessionSummary(data.sessionSummary);
         fetchData();
       } else {
         setUploadStatus({ type: 'error', message: data.error || 'Upload failed' });
@@ -91,6 +94,61 @@ export default function App() {
     } catch (err) {
       setUploadStatus({ type: 'error', message: err.message });
     }
+  };
+
+  const exportImportReport = () => {
+    let reportContent = `# Ingestion Import Report\n\n`;
+    reportContent += `Generated at: ${new Date().toLocaleString()}\n`;
+    reportContent += `Status: Ingestion Complete\n\n`;
+    
+    reportContent += `## Summary of Operations\n`;
+    if (sessionSummary) {
+      reportContent += `- **Total Parsed Rows**: ${sessionSummary.totalRows}\n`;
+      reportContent += `- **Expenses Created**: ${sessionSummary.expensesInserted}\n`;
+      reportContent += `- **Settlements Created**: ${sessionSummary.settlementsInserted}\n`;
+      reportContent += `- **Staged for Review**: ${sessionSummary.staged}\n`;
+      reportContent += `- **Warnings/Anomalies Logged**: ${sessionSummary.anomaliesLogged}\n`;
+    } else {
+      reportContent += `- **Staged Errors Pending**: ${anomalies.length}\n`;
+    }
+    reportContent += `- **Total Group Expenses**: ₹${totalGroupExpenses.toLocaleString('en-IN')}\n`;
+    reportContent += `- **Simplified Debt Transfers**: ${balances.simplifiedDebts.length}\n\n`;
+    
+    reportContent += `## Pending Audit / Staged Anomalies\n`;
+    if (anomalies.length === 0) {
+      reportContent += `* No pending anomalies in the staging database. All rows have been approved or rejected.\n`;
+    } else {
+      anomalies.forEach((staged, idx) => {
+        reportContent += `### [Staged Item #${idx + 1}] CSV Row Index: ${staged.raw_row_index}\n`;
+        reportContent += `- **Description**: ${staged.raw_data.description || 'N/A'}\n`;
+        reportContent += `- **Paid By**: ${staged.raw_data.paid_by || 'N/A'}\n`;
+        reportContent += `- **Amount**: ${staged.raw_data.amount || 'N/A'} ${staged.raw_data.currency || 'INR'}\n`;
+        reportContent += `- **Split With**: ${staged.raw_data.split_with || 'N/A'}\n`;
+        reportContent += `- **Staged Anomalies**:\n`;
+        staged.anomalies.forEach(anom => {
+          reportContent += `  - [${anom.type}] ${anom.description} (Severity: ${anom.severity})\n`;
+        });
+        reportContent += `\n`;
+      });
+    }
+
+    reportContent += `\n## Debt Simplification Plan\n`;
+    if (balances.simplifiedDebts.length === 0) {
+      reportContent += `* No active settlements required.\n`;
+    } else {
+      balances.simplifiedDebts.forEach((txn, idx) => {
+        reportContent += `${idx + 1}. ${txn.from.name} pays ${txn.to.name} ➔ ₹${txn.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n`;
+      });
+    }
+
+    const blob = new Blob([reportContent], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `import_report_${Date.now()}.md`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleResolve = async (stagedExpenseId, action) => {
@@ -434,8 +492,19 @@ export default function App() {
             </form>
 
             {uploadStatus && (
-              <div className={`p-3 rounded text-xs leading-normal border ${uploadStatus.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : uploadStatus.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
-                {uploadStatus.message}
+              <div className="space-y-2">
+                <div className={`p-3 rounded text-xs leading-normal border ${uploadStatus.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : uploadStatus.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
+                  {uploadStatus.message}
+                </div>
+                {uploadStatus.type === 'success' && (
+                  <button
+                    type="button"
+                    onClick={exportImportReport}
+                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-indigo-755 border border-slate-300 font-bold text-xs rounded-lg transition-colors cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                  >
+                    Export Import Report (Markdown)
+                  </button>
+                )}
               </div>
             )}
           </div>
