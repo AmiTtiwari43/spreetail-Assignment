@@ -4,6 +4,12 @@ This production-ready Shared Expenses App parses flatmate expenses, detects impo
 
 **AI Assistant Used**: Antigravity (Gemini 3.5 Flash). See [AI_USAGE.md](file:///c:/Users/tiwar/Downloads/Spreetail%20Assingment/AI_USAGE.md) for prompts, strategy, and self-correction records.
 
+### Assignment Deliverables
+* **System Scope & Schema**: [SCOPE.md](file:///c:/Users/tiwar/Downloads/Spreetail%20Assingment/SCOPE.md)
+* **Architectural Decisions Log**: [DECISIONS.md](file:///c:/Users/tiwar/Downloads/Spreetail%20Assingment/DECISIONS.md)
+* **Ingestion Import Report**: [IMPORT_REPORT.md](file:///c:/Users/tiwar/Downloads/Spreetail%20Assingment/IMPORT_REPORT.md)
+* **AI Usage Log**: [AI_USAGE.md](file:///c:/Users/tiwar/Downloads/Spreetail%20Assingment/AI_USAGE.md)
+
 ## Prerequisites
 - Node.js (v18 or higher)
 - PostgreSQL (v14 or higher)
