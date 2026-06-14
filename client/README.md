@@ -1,16 +1,29 @@
-# React + Vite
+# Shared Expenses Frontend Dashboard (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the interactive client dashboard for the Shared Expenses App. It displays group standing metrics, interactive balance charts, a user-specific audit ledger, and Meera's staging controls for anomaly resolution.
 
-Currently, two official plugins are available:
+## Technical Details
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Framework**: React + Vite
+- **Styling**: Tailwind CSS
+- **Visualizations**: Recharts (for standing bar charts and contribution breakdowns)
+- **Icons**: Lucide React
 
-## React Compiler
+## Setup & Running Locally
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Configure local environment variables (optional). Create a `.env.local` file:
+   ```env
+   VITE_API_BASE=http://localhost:4000/api
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-## Expanding the ESLint configuration
+## Production Deployment on Vercel
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The frontend is deployed on Vercel. Ensure you add `VITE_API_BASE` in the Vercel Project Environment Settings pointing to the hosted Render backend API (e.g. `https://spreetail-expenses-backend.onrender.com/api`).

@@ -48,4 +48,21 @@ This production-ready Shared Expenses App parses flatmate expenses, detects impo
    ```bash
    npm run dev
    ```
-   Open the browser at `http://localhost:5173` to access the dashboard.
+    Open the browser at `http://localhost:5173` to access the dashboard.
+
+---
+
+## 4. Cloud Deployment (Hosted Production Setup)
+
+The application has been configured and deployed to the cloud:
+* **Database**: Hosted on **Neon Serverless PostgreSQL** (utilizing automatic SSL connection pooling).
+* **Backend API**: Deployed on **Render** (Node.js/Express Web Service).
+* **Frontend**: Deployed on **Vercel** (React Client).
+
+### Deploying Updates
+1. **Database Schema**: To push schema migrations to Neon:
+   ```bash
+   DATABASE_URL="your_neon_connection_string" npx prisma db push
+   ```
+2. **Backend**: Any changes pushed to the `main` branch of the GitHub repository will trigger a rebuild and deploy automatically on Render.
+3. **Frontend**: Any changes pushed to the `main` branch will trigger Vercel to rebuild and update the production client. Ensure `VITE_API_BASE` is configured in your Vercel project environment variables to point to your Render backend API service.

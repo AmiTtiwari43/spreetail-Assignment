@@ -6,9 +6,9 @@ This document outlines key technical engineering decisions made during the desig
 - **Decision:** Build the entire project using standard CommonJS modules in pure Node.js.
 - **Rationale:** The strict 2-day delivery constraint requires minimizing build-tooling overhead, compilation steps, and configuration fatigue. Pure JavaScript enables immediate execution and rapid local iteration.
 
-## 2. PostgreSQL Connection Pooling (`pg`)
-- **Decision:** Utilize the native `pg` driver library with connection pooling configuration.
-- **Rationale:** Avoids the performance and setup overhead of heavy ORMs (like Sequelize or Prisma) which abstract raw queries. Express controllers can execute performant, transactional raw SQL queries.
+## 2. PostgreSQL Connection Pooling via Prisma Client & `pg`
+- **Decision:** Utilize `@prisma/client` with the native `@prisma/adapter-pg` driver for connection pooling and SQL execution.
+- **Rationale:** Rather than using a fully abstracted ORM layer, this hybrid design uses Prisma Client's modern connection pooling adapter to run raw SQL queries (`$queryRawUnsafe`). This delivers the performance of raw SQL while leveraging Prisma's schema definition benefits and connection robustness.
 
 ## 3. Decimal Precision via Integer Cents
 - **Decision:** Multiply all database decimal amounts by `100` before calculating in JS, and store them using fixed-point values.
